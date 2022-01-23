@@ -19,9 +19,11 @@ const checkLegal = async (user_id, amount) => {
 };
 
 const addUser = async (req, res) => {
+  console.log("addUSer", req.body);
   const user = {
     user_id: req.body.user_id,
     name: req.body.name,
+    password: req.body.password,
     cash: req.body.cash,
     credit: req.body.credit,
   };
@@ -30,7 +32,7 @@ const addUser = async (req, res) => {
     const createdUser = await newUser.save();
     res.send(createdUser);
   } catch (e) {
-    res.status(400).send(`something went wrong... ):`);
+    res.status(400).send(e.message);
   }
 };
 
@@ -39,11 +41,11 @@ const deposit = async (req, res) => {
   const amount = req.body.amount;
   try {
     await checkLegal(user_id);
-    const updatedUser = await User.findOneAndUpdate(
-      { user_id: user_id },
-      { $inc: { cash: amount } },
-      { new: true }
-    );
+    const updatedUser = await User.findOne({ user_id: user_id });
+    updatedUser.toObject();
+    updatedUser.cash += amount;
+    updatedUser.save();
+    console.log("updatedUser", updatedUser);
     res.send(updatedUser);
   } catch (e) {
     console.log(e);
@@ -142,6 +144,20 @@ const gatAllUsers = async (req, res) => {
   }
 };
 
+//!============>
+const login = async (req, res) => {
+  try {
+    const user = await User.findByCredentials(
+      req.body.user_id,
+      req.body.password
+    );
+    const token = await user.generateAuthToken();
+    res.send({ user, token });
+  } catch (e) {
+    res.status(400).send(e.message);
+  }
+};
+
 module.exports = {
   addUser,
   deposit,
@@ -150,4 +166,5 @@ module.exports = {
   transfer,
   gatUserInfo,
   gatAllUsers,
+  login,
 };
